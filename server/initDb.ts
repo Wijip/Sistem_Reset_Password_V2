@@ -76,8 +76,18 @@ export const initDatabase = async () => {
     `);
 
     console.log("Database initialization finished.");
-  } catch (error) {
-    console.error("Error initializing database:", error);
-    // Don't throw, just log so the server can still try to start
+  } catch (error: any) {
+    console.error("\n❌ ERROR DATABASE CONNECTION:");
+    console.error("--------------------------------------------------");
+    console.error(`Pesan Error: ${error.message}`);
+    console.error("--------------------------------------------------");
+    console.error("INSTRUKSI PERBAIKAN:");
+    console.error("1. Pastikan MySQL di XAMPP (Control Panel) sudah START.");
+    console.error("2. Cek apakah database 'polda_reset_db' sudah dibuat di phpMyAdmin.");
+    console.error("3. Jika menggunakan password, pastikan .env sudah dikonfigurasi.");
+    console.error("4. Cek apakah user 'root' memiliki akses ke localhost.");
+    console.error("--------------------------------------------------\n");
+    
+    // Jangan throw agar server tetap bisa jalan (untuk debugging)
   }
 };
