@@ -12,7 +12,8 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }) => {
   const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
   const isAdmin = currentUser.role === UserRole.ADMIN;
-  const isAnyAdmin = isSuperAdmin || isAdmin;
+  const isPoldaAdmin = currentUser.role === UserRole.ADMIN_POLDA;
+  const isAnyAdmin = isSuperAdmin || isAdmin || isPoldaAdmin;
   const isDarkMode = siteSettings.darkMode;
   
   const mainNav = [
@@ -24,8 +25,8 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
     { path: '/requests', icon: 'lock_reset', label: 'Permintaan Reset' },
   ];
 
-  // Super Admin mendapatkan menu tambahan
-  if (isSuperAdmin) {
+  // Super Admin & Polda Admin mendapatkan menu tambahan
+  if (isSuperAdmin || isPoldaAdmin) {
     adminNav.push(
       { path: '/personnel', icon: 'badge', label: 'Data Personel' },
       { path: '/reports', icon: 'analytics', label: 'Rekap Laporan' },
@@ -34,7 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
   }
 
   return (
-    <aside className={`hidden md:flex flex-col w-72 border-r h-screen sticky top-0 shadow-[10px_0_30px_-15px_rgba(0,0,0,0.03)] print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
+    <aside className={`hidden md:flex flex-col w-72 border-r h-screen sticky top-0 shadow-[10px_0_30px_-15px_rgba(0,0,0,0.03)] print:hidden transition-colors duration-300 ${isDarkMode ? 'bg-[#0a0e17] border-slate-800/50' : 'bg-white border-slate-100'}`}>
       <div className="p-8 flex items-center gap-4">
         <div className="w-14 h-14 flex items-center justify-center">
           {siteSettings.logo ? (
@@ -51,7 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
 
       <div className="flex-1 px-4 py-4 space-y-8 overflow-y-auto scrollbar-hide">
         <div>
-          <div className="px-4 mb-3 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Utama</div>
+          <div className="px-4 mb-3 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Utama</div>
           <nav className="space-y-1">
             {mainNav.map((item) => (
               <NavLink
@@ -61,7 +62,7 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
                   `flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
                     isActive
                       ? 'bg-sky-600 text-white shadow-xl shadow-sky-900/20 font-bold'
-                      : `font-bold ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-50'}`
+                      : `font-bold ${isDarkMode ? 'text-slate-400 hover:bg-slate-800/50 hover:text-white' : 'text-slate-500 hover:bg-slate-50'}`
                   }`
                 }
               >
@@ -74,7 +75,7 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
 
         {isAnyAdmin && (
           <div>
-            <div className="px-4 mb-3 text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Administrasi</div>
+            <div className="px-4 mb-3 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Administrasi</div>
             <nav className="space-y-1">
               {adminNav.map((item) => (
                 <NavLink
@@ -84,7 +85,7 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
                     `flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
                       isActive
                         ? 'bg-sky-600 text-white shadow-xl shadow-sky-900/20 font-bold'
-                        : `font-bold ${isDarkMode ? 'text-slate-400 hover:bg-slate-800' : 'text-slate-500 hover:bg-slate-50'}`
+                        : `font-bold ${isDarkMode ? 'text-slate-400 hover:bg-slate-800/50 hover:text-white' : 'text-slate-500 hover:bg-slate-50'}`
                     }`
                   }
                 >
@@ -98,7 +99,7 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
       </div>
 
       <div className="p-6 mt-auto">
-        <div className={`p-4 rounded-[2rem] border flex items-center gap-3 mb-4 transition-colors duration-300 ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+        <div className={`p-4 rounded-[2rem] border flex items-center gap-3 mb-4 transition-colors duration-300 ${isDarkMode ? 'bg-[#111827] border-slate-800/50' : 'bg-slate-50 border-slate-100'}`}>
           <div className="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-black text-sm shadow-md overflow-hidden">
             {currentUser.foto ? (
               <img src={currentUser.foto} alt="Profile" className="w-full h-full object-cover" />
@@ -108,8 +109,8 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
           </div>
           <div className="min-w-0">
             <div className={`text-xs font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{currentUser.nama}</div>
-            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-              {isSuperAdmin ? 'Super Admin' : isAdmin ? `Admin ${currentUser.kesatuan}` : 'Personel'}
+            <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
+              {isSuperAdmin ? 'Super Admin' : isPoldaAdmin ? 'Super Admin' : isAdmin ? `Admin ${currentUser.kesatuan}` : 'Personel'}
             </div>
           </div>
         </div>

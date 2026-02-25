@@ -20,6 +20,7 @@ import Settings from './views/Settings';
 import Login from './views/Login';
 import UserDashboard from './views/UserDashboard';
 import PublicResetForm from './views/PublicResetForm';
+import SuperAdminDashboard from './views/SuperAdminDashboard';
 import Sidebar from './components/Sidebar';
 import MobileTopbar from './components/MobileTopbar';
 import Toast from './components/Toast';
@@ -220,6 +221,12 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login onLogin={handleLoginSuccess} siteSettings={siteSettings} />} />
             <Route path="/request-reset" element={<PublicResetForm onSubmit={submitPublicRequest} siteSettings={siteSettings} />} />
             
+            <Route path="/admin/dashboard" element={
+              <ProtectedRoute currentUser={currentUser}>
+                <SuperAdminDashboard currentUser={currentUser!} onLogout={handleLogout} />
+              </ProtectedRoute>
+            } />
+
             <Route path="/" element={
               <ProtectedRoute currentUser={currentUser}>
                 {currentUser?.role === UserRole.SUPERADMIN || currentUser?.role === UserRole.ADMIN || currentUser?.role === 'ADMIN_POLDA' ? (

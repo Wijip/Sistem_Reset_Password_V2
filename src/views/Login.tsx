@@ -15,10 +15,10 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [redirectToDashboard, setRedirectToDashboard] = useState(false);
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  if (redirectToDashboard) return <Navigate to="/" />;
+  if (redirectTo) return <Navigate to={redirectTo} />;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +36,11 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
 
       if (response.ok) {
         onLogin(data.user, data.token);
-        setRedirectToDashboard(true);
+        if (data.user.role === 'ADMIN_POLDA') {
+          setRedirectTo('/admin/dashboard');
+        } else {
+          setRedirectTo('/');
+        }
       } else {
         setError(data.message || 'Akses ditolak. NRP atau kata sandi tidak valid.');
       }

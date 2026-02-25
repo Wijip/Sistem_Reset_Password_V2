@@ -133,6 +133,52 @@ app.get("/api/requests", authenticateToken, async (req: any, res) => {
   }
 });
 
+// Get Admin Stats (for Super Admin Dashboard)
+app.get("/api/admin/stats", authenticateToken, async (req: any, res) => {
+  if (req.user.role !== 'ADMIN_POLDA' && req.user.role !== 'superadmin') {
+    return res.status(403).json({ message: "Akses ditolak" });
+  }
+
+  try {
+    const [[{ totalUsers }]]: any = await pool.execute('SELECT COUNT(*) as totalUsers FROM m_users');
+    const [[{ pendingRequests }]]: any = await pool.execute('SELECT COUNT(*) as pendingRequests FROM t_reset_requests WHERE status = "PENDING"');
+    const [[{ approvedRequests }]]: any = await pool.execute('SELECT COUNT(*) as approvedRequests FROM t_reset_requests WHERE status = "APPROVED"');
+    
+    // Activity Graph (last 7 days)
+    const [activityRows]: any = await pool.execute(`
+      SELECT DATE(created_at) as date, COUNT(*) as count 
+      FROM t_reset_requests 
+      WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `);
+
+    // Latest 5 requests
+    const [latestRequests]: any = await pool.execute(`
+      SELECT r.*, u.nama, u.nrp, p.nama as kesatuan 
+      FROM t_reset_requests r
+      JOIN m_users u ON r.user_id = u.id
+      LEFT JOIN m_polres p ON u.polres_id = p.id
+      ORDER BY r.created_at DESC
+      LIMIT 5
+    `);
+
+    res.json({
+      stats: {
+        totalUsers,
+        pendingRequests,
+        approvedRequests,
+        healthSystem: 100 // Mocked as 100%
+      },
+      activity: activityRows,
+      latestRequests
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Gagal mengambil statistik admin" });
+  }
+});
+
 // --- Vite Integration ---
 async function startServer() {
   // Initialize database schema and seed data
