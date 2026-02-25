@@ -10,10 +10,10 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }) => {
-  const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
-  const isAdmin = currentUser.role === UserRole.ADMIN;
   const isPoldaAdmin = currentUser.role === UserRole.ADMIN_POLDA;
-  const isAnyAdmin = isSuperAdmin || isAdmin || isPoldaAdmin;
+  const isPolresAdmin = currentUser.role === UserRole.ADMIN_POLRES;
+  const isUser = currentUser.role === UserRole.USER;
+  const isAnyAdmin = isPoldaAdmin || isPolresAdmin;
   const isDarkMode = siteSettings.darkMode;
   
   const mainNav = [
@@ -25,8 +25,8 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
     { path: '/requests', icon: 'lock_reset', label: 'Permintaan Reset' },
   ];
 
-  // Super Admin & Polda Admin mendapatkan menu tambahan
-  if (isSuperAdmin || isPoldaAdmin) {
+  // Super Admin (ADMIN_POLDA) mendapatkan menu tambahan
+  if (isPoldaAdmin) {
     adminNav.push(
       { path: '/personnel', icon: 'badge', label: 'Data Personel' },
       { path: '/reports', icon: 'analytics', label: 'Rekap Laporan' },
@@ -110,7 +110,7 @@ const Sidebar: React.FC<SidebarProps> = ({ siteSettings, currentUser, onLogout }
           <div className="min-w-0">
             <div className={`text-xs font-black truncate ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>{currentUser.nama}</div>
             <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-              {isSuperAdmin ? 'Super Admin' : isPoldaAdmin ? 'Super Admin' : isAdmin ? `Admin ${currentUser.kesatuan}` : 'Personel'}
+              {isPoldaAdmin ? 'Super Admin' : isPolresAdmin ? `Admin ${currentUser.kesatuan}` : 'Personel'}
             </div>
           </div>
         </div>

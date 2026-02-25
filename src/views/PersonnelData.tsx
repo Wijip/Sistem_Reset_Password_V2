@@ -134,7 +134,7 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
       showToast('Data berhasil diperbarui');
       addLog?.('Update Data', `Memperbarui data personel: ${formData.nama} (NRP: ${formData.nrp})`);
     } else {
-      const defaultPassword = formData.role === UserRole.SUPERADMIN ? 'superadmin!123' : formData.role === UserRole.ADMIN ? 'admin!1234' : 'user!1234';
+      const defaultPassword = formData.role === UserRole.ADMIN_POLDA ? 'superadmin!123' : formData.role === UserRole.ADMIN_POLRES ? 'admin!1234' : 'user!1234';
       
       const newPerson: Personnel = {
         ...(formData as Personnel),
@@ -221,8 +221,8 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                     }`}
                   >
                     <option value="ALL">Semua Role</option>
-                    <option value={UserRole.SUPERADMIN}>Super Admin</option>
-                    <option value={UserRole.ADMIN}>Admin Unit</option>
+                    <option value={UserRole.ADMIN_POLDA}>Super Admin</option>
+                    <option value={UserRole.ADMIN_POLRES}>Admin Unit</option>
                     <option value={UserRole.USER}>User</option>
                   </select>
                 </div>
@@ -282,8 +282,8 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <span className={`w-fit px-2 py-0.5 rounded-lg text-[10px] font-black uppercase ${
-                            p.role === UserRole.SUPERADMIN ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') : 
-                            p.role === UserRole.ADMIN ? (isDarkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600') : (isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600')
+                            p.role === UserRole.ADMIN_POLDA ? (isDarkMode ? 'bg-rose-500/10 text-rose-400' : 'bg-rose-50 text-rose-600') : 
+                            p.role === UserRole.ADMIN_POLRES ? (isDarkMode ? 'bg-indigo-500/10 text-indigo-400' : 'bg-indigo-50 text-indigo-600') : (isDarkMode ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-600')
                           }`}>
                             {p.role}
                           </span>
@@ -373,8 +373,8 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Hak Akses (Role)</div>
                     <div className="flex items-center gap-2 mt-1">
                       <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase ${
-                        selectedPersonnel.role === UserRole.SUPERADMIN ? 'bg-rose-500 text-white' : 
-                        selectedPersonnel.role === UserRole.ADMIN ? 'bg-indigo-500 text-white' : 'bg-slate-500 text-white'
+                        selectedPersonnel.role === UserRole.ADMIN_POLDA ? 'bg-rose-500 text-white' : 
+                        selectedPersonnel.role === UserRole.ADMIN_POLRES ? 'bg-indigo-500 text-white' : 'bg-slate-500 text-white'
                       }`}>
                         {selectedPersonnel.role}
                       </span>
@@ -504,8 +504,8 @@ const PersonnelData: React.FC<PersonnelDataProps> = ({ personnel, setPersonnel, 
                     onChange={(e) => setFormData({...formData, role: e.target.value as UserRole})}
                   >
                     <option value={UserRole.USER}>User (Personel)</option>
-                    <option value={UserRole.ADMIN}>Admin (Polres/Kesatuan)</option>
-                    <option value={UserRole.SUPERADMIN}>Super Admin (Pusat)</option>
+                    <option value={UserRole.ADMIN_POLRES}>Admin (Polres/Kesatuan)</option>
+                    <option value={UserRole.ADMIN_POLDA}>Super Admin (Pusat)</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">

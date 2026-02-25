@@ -13,7 +13,7 @@ export const mockData = {
       "kesatuan": "Polda Jatim",
       "email": "superadmin1@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.SUPERADMIN,
+      "role": UserRole.ADMIN_POLDA,
       "passwordPlain": "superadmin123"
     },
     {
@@ -25,7 +25,7 @@ export const mockData = {
       "kesatuan": "Polda Jatim",
       "email": "superadmin2@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.SUPERADMIN,
+      "role": UserRole.ADMIN_POLDA,
       "passwordPlain": "siperadmin123"
     },
 
@@ -53,7 +53,7 @@ export const mockData = {
       "kesatuan": "Polres Malang",
       "email": "admin.malang@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.ADMIN,
+      "role": UserRole.ADMIN_POLRES,
       "passwordPlain": "adminmalang123"
     },
     {
@@ -79,7 +79,7 @@ export const mockData = {
       "kesatuan": "Polres Sidoarjo",
       "email": "admin.sidoarjo@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.ADMIN,
+      "role": UserRole.ADMIN_POLRES,
       "passwordPlain": "adminsidoarjo123"
     },
     {
@@ -105,7 +105,7 @@ export const mockData = {
       "kesatuan": "Polrestabes Surabaya",
       "email": "admin.surabaya@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.ADMIN,
+      "role": UserRole.ADMIN_POLRES,
       "passwordPlain": "adminsurabaya123"
     },
     {
@@ -131,7 +131,7 @@ export const mockData = {
       "kesatuan": "Polres Gresik",
       "email": "admin.gresik@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.ADMIN,
+      "role": UserRole.ADMIN_POLRES,
       "passwordPlain": "admingresik123"
     },
     {
@@ -157,7 +157,7 @@ export const mockData = {
       "kesatuan": "Polres Mojokerto",
       "email": "admin.mojokerto@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.ADMIN,
+      "role": UserRole.ADMIN_POLRES,
       "passwordPlain": "adminmojokerto123"
     },
     {
@@ -183,7 +183,7 @@ export const mockData = {
       "kesatuan": "Polres Pasuruan",
       "email": "admin.pasuruan@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.ADMIN,
+      "role": UserRole.ADMIN_POLRES,
       "passwordPlain": "adminpasuruan123"
     },
     {
@@ -209,7 +209,7 @@ export const mockData = {
       "kesatuan": "Polres Kediri",
       "email": "admin.kediri@polri.go.id",
       "status": "Aktif",
-      "role": UserRole.ADMIN,
+      "role": UserRole.ADMIN_POLRES,
       "passwordPlain": "adminkediri123"
     },
     {

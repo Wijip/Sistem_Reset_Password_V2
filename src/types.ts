@@ -13,11 +13,9 @@ export enum RequestPriority {
 }
 
 export enum UserRole {
-  ADMIN = 'admin',
-  USER = 'user',
-  SUPERADMIN = 'superadmin',
   ADMIN_POLDA = 'ADMIN_POLDA',
-  USER_POLRES = 'USER_POLRES'
+  ADMIN_POLRES = 'ADMIN_POLRES',
+  USER = 'USER'
 }
 
 export interface Personnel {
@@ -27,6 +25,7 @@ export interface Personnel {
   nrp: string;
   jabatan: string;
   kesatuan: string;
+  polres_id?: number;
   email: string;
   status: string;
   role: UserRole;

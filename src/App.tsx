@@ -27,12 +27,12 @@ import Toast from './components/Toast';
 
 const ProtectedRoute: React.FC<React.PropsWithChildren<{ 
   currentUser: Personnel | null, 
-  superAdminOnly?: boolean,
+  poldaOnly?: boolean,
   anyAdminOnly?: boolean
-}>> = ({ children, currentUser, superAdminOnly = false, anyAdminOnly = false }) => {
+}>> = ({ children, currentUser, poldaOnly = false, anyAdminOnly = false }) => {
   if (!currentUser) return <Navigate to="/login" replace />;
   
-  if (superAdminOnly && currentUser.role !== UserRole.SUPERADMIN) return <Navigate to="/" replace />;
+  if (poldaOnly && currentUser.role !== UserRole.ADMIN_POLDA) return <Navigate to="/" replace />;
   
   if (anyAdminOnly && currentUser.role === UserRole.USER) return <Navigate to="/" replace />;
   
@@ -143,7 +143,7 @@ const App: React.FC = () => {
       waktu: Date.now(),
       user: {
         nama: currentUser.nama,
-        role: currentUser.role === UserRole.SUPERADMIN ? 'Super Admin' : currentUser.role === UserRole.ADMIN ? 'Admin Polres' : 'Personel',
+        role: currentUser.role === UserRole.ADMIN_POLDA ? 'Super Admin' : currentUser.role === UserRole.ADMIN_POLRES ? 'Admin Polres' : 'Personel',
         initials: currentUser.nama.split(' ').map(n => n[0]).join('').toUpperCase()
       },
       aktivitas,
@@ -222,14 +222,14 @@ const App: React.FC = () => {
             <Route path="/request-reset" element={<PublicResetForm onSubmit={submitPublicRequest} siteSettings={siteSettings} />} />
             
             <Route path="/admin/dashboard" element={
-              <ProtectedRoute currentUser={currentUser}>
+              <ProtectedRoute currentUser={currentUser} poldaOnly>
                 <SuperAdminDashboard currentUser={currentUser!} onLogout={handleLogout} />
               </ProtectedRoute>
             } />
 
             <Route path="/" element={
               <ProtectedRoute currentUser={currentUser}>
-                {currentUser?.role === UserRole.SUPERADMIN || currentUser?.role === UserRole.ADMIN || currentUser?.role === 'ADMIN_POLDA' ? (
+                {currentUser?.role === UserRole.ADMIN_POLDA || currentUser?.role === UserRole.ADMIN_POLRES ? (
                   <Dashboard showToast={showToast} currentUser={currentUser!} />
                 ) : (
                   <UserDashboard 
@@ -258,7 +258,7 @@ const App: React.FC = () => {
             } />
             
             <Route path="/personnel" element={
-              <ProtectedRoute superAdminOnly currentUser={currentUser}>
+              <ProtectedRoute poldaOnly currentUser={currentUser}>
                 <PersonnelData 
                   personnel={personnel} 
                   setPersonnel={setPersonnel} 
@@ -269,13 +269,13 @@ const App: React.FC = () => {
             } />
 
             <Route path="/reports" element={
-              <ProtectedRoute superAdminOnly currentUser={currentUser}>
+              <ProtectedRoute poldaOnly currentUser={currentUser}>
                 <Reports requests={requests} showToast={showToast} />
               </ProtectedRoute>
             } />
 
             <Route path="/logs" element={
-              <ProtectedRoute superAdminOnly currentUser={currentUser}>
+              <ProtectedRoute poldaOnly currentUser={currentUser}>
                 <Logs logs={logs} showToast={showToast} />
               </ProtectedRoute>
             } />

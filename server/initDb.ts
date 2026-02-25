@@ -23,7 +23,7 @@ export const initDatabase = async () => {
         nama VARCHAR(100) NOT NULL,
         email VARCHAR(100) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
-        role ENUM('ADMIN_POLDA', 'USER_POLRES') DEFAULT 'USER_POLRES',
+        role ENUM('ADMIN_POLDA', 'ADMIN_POLRES', 'USER') DEFAULT 'USER',
         polres_id INT,
         FOREIGN KEY (polres_id) REFERENCES m_polres(id)
       )
@@ -39,25 +39,25 @@ export const initDatabase = async () => {
       const defaultPassword = "password123";
       const hashedPassword = await bcrypt.hash(defaultPassword, 10);
 
-      // Ensure at least one polres exists for seeding
-      await pool.execute("INSERT IGNORE INTO m_polres (id, nama) VALUES (1, 'POLDA JATIM')");
+      // Ensure polres exist for seeding
+      await pool.execute("INSERT IGNORE INTO m_polres (id, nama) VALUES (1, 'POLDA JATIM'), (2, 'POLRES MALANG'), (3, 'POLRES SIDOARJO')");
 
       const initialUsers = [
-        { nrp: '11111111', nama: 'Super Admin 1', email: 'superadmin1@polri.go.id', role: 'ADMIN_POLDA' },
-        { nrp: '22222222', nama: 'Super Admin 2', email: 'superadmin2@polri.go.id', role: 'ADMIN_POLDA' },
-        { nrp: '33333333', nama: 'Admin Malang', email: 'admin.malang@polri.go.id', role: 'ADMIN_POLDA' },
-        { nrp: '44444444', nama: 'Admin Sidoarjo', email: 'admin.sidoarjo@polri.go.id', role: 'ADMIN_POLDA' },
-        { nrp: '55555555', nama: 'User Testing', email: 'testing@polri.go.id', role: 'USER_POLRES' },
+        { nrp: '11111111', nama: 'Super Admin Polda', email: 'admin.polda@polri.go.id', role: 'ADMIN_POLDA', polres_id: 1 },
+        { nrp: '22222222', nama: 'Admin Polres Malang', email: 'admin.malang@polri.go.id', role: 'ADMIN_POLRES', polres_id: 2 },
+        { nrp: '33333333', nama: 'Admin Polres Sidoarjo', email: 'admin.sidoarjo@polri.go.id', role: 'ADMIN_POLRES', polres_id: 3 },
+        { nrp: '44444444', nama: 'User Testing', email: 'testing@polri.go.id', role: 'USER', polres_id: 2 },
       ];
 
       for (const user of initialUsers) {
         await pool.execute(
           "INSERT INTO m_users (nrp, nama, email, password_hash, role, polres_id) VALUES (?, ?, ?, ?, ?, ?)",
-          [user.nrp, user.nama, user.email, hashedPassword, user.role, 1]
+          [user.nrp, user.nama, user.email, hashedPassword, user.role, user.polres_id]
         );
       }
       console.log("Seeding completed successfully.");
-    } else {
+    }
+ else {
       console.log("Database already has data, skipping seed.");
     }
 

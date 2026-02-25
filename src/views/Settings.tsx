@@ -23,8 +23,8 @@ const Settings: React.FC<SettingsProps> = ({
   const adminPhotoRef = useRef<HTMLInputElement>(null);
   
   // Penentuan Role
-  const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
-  const isAdminPolres = currentUser.role === UserRole.ADMIN;
+  const isPoldaAdmin = currentUser.role === UserRole.ADMIN_POLDA;
+  const isPolresAdmin = currentUser.role === UserRole.ADMIN_POLRES;
   
   // Local state for Website Settings
   const [siteForm, setSiteForm] = useState({
@@ -55,7 +55,7 @@ const Settings: React.FC<SettingsProps> = ({
 
   const handleUpdateSite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isSuperAdmin) return; // Proteksi tambahan
+    if (!isPoldaAdmin) return; // Proteksi tambahan
     
     setSiteSettings({
       name: siteForm.name,
@@ -130,7 +130,7 @@ const Settings: React.FC<SettingsProps> = ({
     <main className={`p-6 md:p-10 space-y-8 max-w-[1000px] mx-auto animate-in fade-in duration-500 pb-20 transition-colors duration-300`}>
       
       {/* SECTION: Identitas Website (HANYA UNTUK SUPER ADMIN) */}
-      {isSuperAdmin && (
+      {isPoldaAdmin && (
         <div className={`rounded-[2.5rem] shadow-sm border overflow-hidden transition-colors duration-300 ${siteSettings.darkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
           <div className={`p-8 flex items-center gap-4 transition-colors duration-300 ${siteSettings.darkMode ? 'bg-slate-800/50' : 'bg-slate-50/50'}`}>
             <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center">
@@ -246,7 +246,7 @@ const Settings: React.FC<SettingsProps> = ({
           </div>
           <div>
             <h3 className={`font-black text-lg ${siteSettings.darkMode ? 'text-white' : 'text-slate-800'}`}>
-              {isSuperAdmin ? 'Profil Super Admin' : isAdminPolres ? 'Profil Admin Polres' : 'Profil Personel'}
+              {isPoldaAdmin ? 'Profil Super Admin' : isPolresAdmin ? 'Profil Admin Polres' : 'Profil Personel'}
             </h3>
             <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Identitas Akun & Jabatan</p>
           </div>

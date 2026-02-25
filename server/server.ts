@@ -66,6 +66,7 @@ app.post("/api/login", async (req, res) => {
         nama: user.nama,
         email: user.email,
         role: user.role,
+        polres_id: user.polres_id,
         kesatuan: user.polres_nama || 'POLDA JATIM'
       }
     });
@@ -100,10 +101,27 @@ app.post("/api/reset-request", async (req, res) => {
 // Get Stats (for Dashboard)
 app.get("/api/stats", authenticateToken, async (req: any, res) => {
   try {
-    const [[{ totalRequests }]]: any = await pool.execute('SELECT COUNT(*) as totalRequests FROM t_reset_requests');
-    const [[{ pendingRequests }]]: any = await pool.execute('SELECT COUNT(*) as pendingRequests FROM t_reset_requests WHERE status = "PENDING"');
-    const [[{ approvedRequests }]]: any = await pool.execute('SELECT COUNT(*) as approvedRequests FROM t_reset_requests WHERE status = "APPROVED"');
-    const [[{ totalUsers }]]: any = await pool.execute('SELECT COUNT(*) as totalUsers FROM m_users');
+    const isPolda = req.user.role === 'ADMIN_POLDA';
+    const polresId = req.user.polres_id;
+
+    let totalRequestsQuery = 'SELECT COUNT(*) as totalRequests FROM t_reset_requests';
+    let pendingRequestsQuery = 'SELECT COUNT(*) as pendingRequests FROM t_reset_requests WHERE status = "PENDING"';
+    let approvedRequestsQuery = 'SELECT COUNT(*) as approvedRequests FROM t_reset_requests WHERE status = "APPROVED"';
+    let totalUsersQuery = 'SELECT COUNT(*) as totalUsers FROM m_users';
+    let params: any[] = [];
+
+    if (!isPolda) {
+      totalRequestsQuery += ' r JOIN m_users u ON r.user_id = u.id WHERE u.polres_id = ?';
+      pendingRequestsQuery += ' r JOIN m_users u ON r.user_id = u.id WHERE r.status = "PENDING" AND u.polres_id = ?';
+      approvedRequestsQuery += ' r JOIN m_users u ON r.user_id = u.id WHERE r.status = "APPROVED" AND u.polres_id = ?';
+      totalUsersQuery += ' WHERE polres_id = ?';
+      params = [polresId];
+    }
+
+    const [[{ totalRequests }]]: any = await pool.execute(totalRequestsQuery, params);
+    const [[{ pendingRequests }]]: any = await pool.execute(pendingRequestsQuery, params);
+    const [[{ approvedRequests }]]: any = await pool.execute(approvedRequestsQuery, params);
+    const [[{ totalUsers }]]: any = await pool.execute(totalUsersQuery, params);
 
     res.json({
       totalRequests,
@@ -112,6 +130,7 @@ app.get("/api/stats", authenticateToken, async (req: any, res) => {
       totalUsers
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Gagal mengambil statistik" });
   }
 });
@@ -119,17 +138,41 @@ app.get("/api/stats", authenticateToken, async (req: any, res) => {
 // Get Requests
 app.get("/api/requests", authenticateToken, async (req: any, res) => {
   try {
+    const isPolda = req.user.role === 'ADMIN_POLDA';
+    const polresId = req.user.polres_id;
+
     let query = `
       SELECT r.*, u.nama, u.nrp, p.nama as kesatuan 
       FROM t_reset_requests r
       JOIN m_users u ON r.user_id = u.id
       LEFT JOIN m_polres p ON u.polres_id = p.id
-      ORDER BY r.created_at DESC
     `;
-    const [requests] = await pool.execute(query);
+    
+    let params: any[] = [];
+    if (!isPolda) {
+      query += ' WHERE u.polres_id = ?';
+      params = [polresId];
+    }
+    
+    query += ' ORDER BY r.created_at DESC';
+    
+    const [requests] = await pool.execute(query, params);
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: "Gagal mengambil data" });
+  }
+});
+
+// Update Request Status
+app.patch("/api/requests/:id", authenticateToken, async (req: any, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    await pool.execute('UPDATE t_reset_requests SET status = ? WHERE id = ?', [status, id]);
+    res.json({ success: true, message: "Status berhasil diperbarui" });
+  } catch (error) {
+    res.status(500).json({ message: "Gagal memperbarui status" });
   }
 });
 

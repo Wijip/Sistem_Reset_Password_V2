@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { useDebounce } from '../hooks/useDebounce';
 import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
@@ -23,9 +23,9 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   siteSettings,
   currentUser
 }) => {
-  const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN;
-  const isAdminPolres = currentUser.role === UserRole.ADMIN;
-  const isAnyAdmin = isSuperAdmin || isAdminPolres;
+  const isPoldaAdmin = currentUser.role === UserRole.ADMIN_POLDA;
+  const isPolresAdmin = currentUser.role === UserRole.ADMIN_POLRES;
+  const isAnyAdmin = isPoldaAdmin || isPolresAdmin;
   const isDarkMode = siteSettings.darkMode;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +51,25 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   const [newPassword, setNewPassword] = useState('');
   const [showWeakWarning, setShowWeakWarning] = useState(false);
   const [showDetailPassword, setShowDetailPassword] = useState(false);
+
+  useEffect(() => {
+    const fetchRequests = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/api/requests', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setRequests(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch requests", error);
+      }
+    };
+    fetchRequests();
+  }, [setRequests]);
+
   const getPasswordStrength = (pass: string) => {
     if (!pass) return 0;
     let score = 0;
@@ -70,14 +89,14 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     pangkat: '',
     nrp: '',
     jabatan: '',
-    kesatuan: isAdminPolres ? currentUser.kesatuan : '',
+    kesatuan: isPolresAdmin ? currentUser.kesatuan : '',
     catatan: ''
   });
 
   // Helper untuk Label Status Dinamis
   const getStatusLabel = (status: RequestStatus) => {
     if (status === RequestStatus.MENUNGGU) {
-      return isSuperAdmin ? 'Diterima' : 'Terkirim';
+      return isPoldaAdmin ? 'Diterima' : 'Terkirim';
     }
     if (status === RequestStatus.DIPROSES) return 'Di Proses';
     if (status === RequestStatus.SELESAI) return 'Selesai';
@@ -86,7 +105,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
   };
 
   const stats = useMemo(() => {
-    const relevant = requests.filter(r => !isAdminPolres || r.kesatuan === currentUser.kesatuan);
+    const relevant = requests; // Already filtered by backend
     const total = relevant.length;
     const pending = relevant.filter(r => r.status === RequestStatus.MENUNGGU).length;
     const processing = relevant.filter(r => r.status === RequestStatus.DIPROSES).length;
@@ -99,12 +118,10 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     ).length;
 
     return { total, pending, processing, completedToday, urgent };
-  }, [requests, isAdminPolres, currentUser.kesatuan]);
+  }, [requests]);
 
   const filteredRequests = useMemo(() => {
     return requests.filter(req => {
-      if (isAdminPolres && req.kesatuan !== currentUser.kesatuan) return false;
-
       const search = debouncedSearch.toLowerCase().trim();
       const matchesSearch = search === '' || 
         (req.nama || '').toLowerCase().includes(search) ||
@@ -130,7 +147,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
 
       return matchesSearch && matchesStatus && matchesPriority && matchesDate;
     }).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  }, [requests, appliedFilters, isAdminPolres, currentUser.kesatuan]);
+  }, [requests, appliedFilters, debouncedSearch]);
 
   const handleApplyFilter = () => {
     setAppliedFilters({
@@ -175,13 +192,32 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
     }
   };
 
-  const handleBulkProcess = () => {
+  const updateRequestStatus = async (reqId: string, status: RequestStatus) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/requests/${reqId}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status })
+      });
+      if (response.ok) {
+        setRequests(prev => prev.map(r => r.id === reqId ? { ...r, status } : r));
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to update status", error);
+    }
+    return false;
+  };
+
+  const handleBulkProcess = async () => {
     if (selectedIds.length === 0) return;
-    setRequests(prev => prev.map(r => 
-      selectedIds.includes(r.id) && r.status === RequestStatus.MENUNGGU 
-        ? { ...r, status: RequestStatus.DIPROSES } 
-        : r
-    ));
+    for (const id of selectedIds) {
+      await updateRequestStatus(id, RequestStatus.DIPROSES);
+    }
     showToast(`${selectedIds.length} permintaan ditandai sedang diproses`);
     addLog?.('Update Data', `Memproses massal ${selectedIds.length} permintaan reset`);
     setSelectedIds([]);
@@ -224,7 +260,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
           pangkat: item.Pangkat || item.pangkat || '-',
           nrp: String(item.NRP || item.nrp || '00000000'),
           jabatan: item.Jabatan || item.jabatan || '-',
-          kesatuan: isAdminPolres ? currentUser.kesatuan : (item.Kesatuan || item.kesatuan || 'Polda Jatim'),
+          kesatuan: isPolresAdmin ? currentUser.kesatuan : (item.Kesatuan || item.kesatuan || 'Polda Jatim'),
           waktu_iso: new Date().toISOString(),
           status: RequestStatus.MENUNGGU,
           alasan: 'Import Data Massal',
@@ -272,27 +308,26 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       pangkat: '',
       nrp: '',
       jabatan: '',
-      kesatuan: isAdminPolres ? currentUser.kesatuan : '',
+      kesatuan: isPolresAdmin ? currentUser.kesatuan : '',
       catatan: ''
     });
   };
 
-  const handleStartProcess = (reqId: string) => {
-    setRequests(prev => prev.map(r => 
-      r.id === reqId ? { ...r, status: RequestStatus.DIPROSES } : r
-    ));
-    showToast('Permintaan ditandai sedang diproses');
-    addLog?.('Reset Password', `Memulai proses reset password untuk permintaan ID: ${reqId}`);
+  const handleStartProcess = async (reqId: string) => {
+    const success = await updateRequestStatus(reqId, RequestStatus.DIPROSES);
+    if (success) {
+      showToast('Permintaan ditandai sedang diproses');
+      addLog?.('Reset Password', `Memulai proses reset password untuk permintaan ID: ${reqId}`);
+    }
   };
 
   const checkPasswordStrength = (pass: string) => {
-    // Kriteria Lemah: kurang dari 8 karakter ATAU tidak ada angka ATAU tidak ada simbol
     const hasNumber = /\d/.test(pass);
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(pass);
     return pass.length >= 8 && hasNumber && hasSymbol;
   };
 
-  const executeReset = (bypassWarning = false) => {
+  const executeReset = async (bypassWarning = false) => {
     if (!selectedReq) return;
     if (!newPassword.trim()) {
       showToast('Password tidak boleh kosong', 'error');
@@ -305,20 +340,23 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       return;
     }
     
-    setRequests(prev => prev.map(r => 
-      r.id === selectedReq?.id ? { 
-        ...r, 
-        status: RequestStatus.SELESAI, 
-        updatedAt: Date.now(),
-        reset_password: newPassword,
-        reset_info: { by: currentUser.nama, at_iso: new Date().toISOString(), password_set: true }
-      } : r
-    ));
-    showToast(`Password untuk ${selectedReq?.nama} berhasil diperbarui`);
-    addLog?.('Reset Password', `Menyelesaikan permintaan reset password: ${selectedReq.nama}`);
-    setSelectedReq(null);
-    setNewPassword('');
-    setShowWeakWarning(false);
+    const success = await updateRequestStatus(selectedReq.id, RequestStatus.SELESAI);
+    if (success) {
+      setRequests(prev => prev.map(r => 
+        r.id === selectedReq?.id ? { 
+          ...r, 
+          status: RequestStatus.SELESAI, 
+          updatedAt: Date.now(),
+          reset_password: newPassword,
+          reset_info: { by: currentUser.nama, at_iso: new Date().toISOString(), password_set: true }
+        } : r
+      ));
+      showToast(`Password untuk ${selectedReq?.nama} berhasil diperbarui`);
+      addLog?.('Reset Password', `Menyelesaikan permintaan reset password: ${selectedReq.nama}`);
+      setSelectedReq(null);
+      setNewPassword('');
+      setShowWeakWarning(false);
+    }
   };
 
   return (
@@ -381,7 +419,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 print:hidden">
         {[
           { label: 'Total Request', value: stats.total, sub: 'Seluruh pengajuan', icon: 'list_alt', color: 'blue' },
-          { label: isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim', value: stats.pending, sub: 'Butuh verifikasi segera', icon: 'hourglass_empty', color: 'amber' },
+          { label: isPoldaAdmin ? 'Status: Diterima' : 'Status: Terkirim', value: stats.pending, sub: 'Butuh verifikasi segera', icon: 'hourglass_empty', color: 'amber' },
           { label: 'Status: Diproses', value: stats.processing, sub: 'Sedang dalam pengerjaan', icon: 'sync', color: 'indigo' },
           { label: 'Status: Selesai', value: stats.completedToday, sub: 'Berhasil hari ini', icon: 'verified', color: 'emerald' },
           { label: 'Prioritas Mendesak', value: stats.urgent, sub: 'Butuh tindakan cepat', icon: 'priority_high', color: 'rose' }
@@ -419,7 +457,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
             onChange={(e) => setFilterStatus(e.target.value)}
           >
             <option value="Semua">Status: Semua</option>
-            <option value={RequestStatus.MENUNGGU}>{isSuperAdmin ? 'Status: Diterima' : 'Status: Terkirim'}</option>
+            <option value={RequestStatus.MENUNGGU}>{isPoldaAdmin ? 'Status: Diterima' : 'Status: Terkirim'}</option>
             <option value={RequestStatus.DIPROSES}>Status: Di Proses</option>
             <option value={RequestStatus.SELESAI}>Status: Selesai</option>
             <option value={RequestStatus.DITOLAK}>Status: Ditolak</option>
@@ -592,7 +630,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                         Detail
                       </button>
                       
-                      {isSuperAdmin && (
+                      {isPoldaAdmin && (
                         <>
                           {req.status === RequestStatus.MENUNGGU && (
                              <button 
@@ -810,16 +848,16 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
                   <input 
                     type="text" 
                     className={`w-full px-6 py-4 border rounded-2xl text-sm font-black transition-all outline-none ${
-                      isAdminPolres 
+                      isPolresAdmin 
                         ? (isDarkMode ? 'bg-slate-800/50 border-slate-800 text-slate-500' : 'bg-slate-100 border-slate-100 text-slate-500') 
                         : (isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:bg-slate-700' : 'bg-slate-50 border-slate-200 focus:bg-white')
                     }`}
                     value={manualForm.kesatuan}
-                    onChange={(e) => !isAdminPolres && setManualForm({...manualForm, kesatuan: e.target.value})}
-                    readOnly={isAdminPolres}
+                    onChange={(e) => !isPolresAdmin && setManualForm({...manualForm, kesatuan: e.target.value})}
+                    readOnly={isPolresAdmin}
                     required
                   />
-                  {isAdminPolres && <p className="text-[9px] font-bold text-blue-500 uppercase mt-2 italic px-1">* Terkunci: Hanya untuk unit {currentUser.kesatuan}</p>}
+                  {isPolresAdmin && <p className="text-[9px] font-bold text-blue-500 uppercase mt-2 italic px-1">* Terkunci: Hanya untuk unit {currentUser.kesatuan}</p>}
                </div>
                <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Keterangan / Catatan</label>
@@ -840,7 +878,7 @@ const ResetRequests: React.FC<ResetRequestsProps> = ({
       )}
 
       {/* MODAL PROSES RESET (EKSEKUSI PASSWORD) */}
-      {selectedReq && isSuperAdmin && (
+      {selectedReq && isPoldaAdmin && (
         <div className="fixed inset-0 z-[170] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
           <div className={`rounded-[3rem] w-full max-w-md overflow-hidden shadow-2xl animate-in zoom-in-95 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
             <div className={`p-10 border-b flex items-center justify-between transition-colors duration-300 ${isDarkMode ? 'bg-slate-800/50 border-slate-800' : 'bg-slate-50/30 border-slate-50'}`}>

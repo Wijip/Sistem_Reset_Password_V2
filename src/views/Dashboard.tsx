@@ -18,7 +18,9 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
-  const isSuperAdmin = currentUser.role === UserRole.SUPERADMIN || currentUser.role === 'ADMIN_POLDA';
+  const isPoldaAdmin = currentUser.role === UserRole.ADMIN_POLDA;
+  const isPolresAdmin = currentUser.role === UserRole.ADMIN_POLRES;
+  const isAnyAdmin = isPoldaAdmin || isPolresAdmin;
   const isDarkMode = document.documentElement.classList.contains('dark');
   const [chartRange, setChartRange] = useState<'7' | '30'>('7');
   const [backendStats, setBackendStats] = useState<any>(null);
@@ -50,9 +52,9 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
       totalUsers: backendStats?.totalUsers || 0,
       activeRequests: backendStats?.pendingRequests || 0,
       completedRequests: backendStats?.approvedRequests || 0,
-      labelContext: isSuperAdmin ? 'Seluruh Jatim' : `Unit ${currentUser.kesatuan}`
+      labelContext: isPoldaAdmin ? 'Seluruh Jatim' : `Polres ${currentUser.kesatuan}`
     };
-  }, [backendStats, isSuperAdmin, currentUser]);
+  }, [backendStats, isPoldaAdmin, currentUser]);
 
   const chartData = useMemo(() => {
     const rangeDays = parseInt(chartRange);
@@ -89,8 +91,8 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
     <main className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <span className="text-sky-600 font-black text-xs uppercase tracking-[0.2em]">Monitoring Panel - {isSuperAdmin ? 'Pusat' : 'Polres'}</span>
-          <h1 className={`text-3xl font-black tracking-tight mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Dashboard {isSuperAdmin ? 'Super Admin' : 'Admin Unit'}</h1>
+          <span className="text-sky-600 font-black text-xs uppercase tracking-[0.2em]">Monitoring Panel - {isPoldaAdmin ? 'Pusat' : 'Polres'}</span>
+          <h1 className={`text-3xl font-black tracking-tight mt-1 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Dashboard {isPoldaAdmin ? 'Super Admin' : 'Admin Unit'}</h1>
           <p className="text-sm text-slate-500 font-medium mt-1">Cakupan Data: <span className={`${isDarkMode ? 'text-slate-300' : 'text-slate-900'} font-bold`}>{stats.labelContext}</span></p>
         </div>
         <div className={`px-4 py-2 rounded-2xl border shadow-sm flex items-center gap-3 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'}`}>
@@ -181,7 +183,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 <span className="material-symbols-outlined text-sky-400 mb-3 group-hover:scale-110 transition-transform text-3xl">lock_reset</span>
                 <div className="text-[10px] font-black uppercase tracking-tighter">Proses Request</div>
               </Link>
-              {isSuperAdmin && (
+              {isPoldaAdmin && (
                 <Link to="/personnel" className="p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all group">
                   <span className="material-symbols-outlined text-emerald-400 mb-3 group-hover:scale-110 transition-transform text-3xl">manage_accounts</span>
                   <div className="text-[10px] font-black uppercase tracking-tighter">Kelola Personel</div>
@@ -191,7 +193,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentUser }) => {
                 <span className="material-symbols-outlined text-orange-400 mb-3 group-hover:scale-110 transition-transform text-3xl">tune</span>
                 <div className="text-[10px] font-black uppercase tracking-tighter">Profil Akun</div>
               </Link>
-              {isSuperAdmin && (
+              {isPoldaAdmin && (
                 <Link to="/logs" className="p-4 bg-white/10 hover:bg-white/20 rounded-2xl transition-all group">
                   <span className="material-symbols-outlined text-indigo-400 mb-3 group-hover:scale-110 transition-transform text-3xl">security</span>
                   <div className="text-[10px] font-black uppercase tracking-tighter">Audit Log</div>
