@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useDebounce } from '../src/hooks/useDebounce';
+import { useDebounce } from '../hooks/useDebounce';
 import { Personnel, UserRole, LogEntry } from '../types';
 
 interface PersonnelDataProps {

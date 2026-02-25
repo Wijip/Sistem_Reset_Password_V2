@@ -28,21 +28,34 @@ const PublicResetForm: React.FC<PublicResetFormProps> = ({ onSubmit, siteSetting
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setResult(null);
     
-    setTimeout(() => {
-      const res = onSubmit(nrp, alasan, dokumen || undefined, prioritas);
-      setResult(res);
-      setIsSubmitting(false);
-      if (res.success) {
+    try {
+      const response = await fetch('/api/reset-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nrp, alasan, dokumen_kta: dokumen, prioritas })
+      });
+
+      const data = await response.json();
+      
+      if (response.ok) {
+        setResult({ success: true, message: 'Permintaan Anda telah dikirim ke Admin.' });
         setNrp('');
         setAlasan('');
         setDokumen(null);
         setPrioritas(RequestPriority.NORMAL);
+      } else {
+        setResult({ success: false, message: data.message || 'Gagal mengirim permintaan.' });
       }
-    }, 1500);
+    } catch (error) {
+      setResult({ success: false, message: 'Terjadi kesalahan koneksi ke server.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

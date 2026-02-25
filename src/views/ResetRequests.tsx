@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
-import { useDebounce } from '../src/hooks/useDebounce';
+import { useDebounce } from '../hooks/useDebounce';
 import { ResetRequest, RequestStatus, LogEntry, SiteSettings, UserRole, Personnel, RequestPriority } from '../types';
 
 interface ResetRequestsProps {
