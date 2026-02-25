@@ -1,0 +1,53 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN_POLDA
+  USER_POLRES
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model m_polres {
+  id    Int      @id @default(autoincrement())
+  nama  String   @unique
+  users m_users[]
+}
+
+model m_users {
+  id            Int              @id @default(autoincrement())
+  nrp           String           @unique
+  nama          String
+  email         String           @unique
+  password_hash String
+  role          Role             @default(USER_POLRES)
+  polres_id     Int?
+  polres        m_polres?        @relation(fields: [polres_id], references: [id])
+  requests      t_reset_requests[]
+}
+
+model t_reset_requests {
+  id          Int           @id @default(autoincrement())
+  user_id     Int
+  user        m_users       @relation(fields: [user_id], references: [id])
+  token_hash  String?
+  status      RequestStatus @default(PENDING)
+  alasan      String
+  dokumen_kta String?       @db.LongText
+  prioritas   String        @default("Normal")
+  created_at  DateTime      @default(now())
+  expired_at  DateTime?
+}

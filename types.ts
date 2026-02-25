@@ -1,0 +1,96 @@
+
+export enum RequestStatus {
+  MENUNGGU = 'MENUNGGU',
+  DIPROSES = 'DIPROSES',
+  DITOLAK = 'DITOLAK',
+  SELESAI = 'SELESAI'
+}
+
+export enum RequestPriority {
+  NORMAL = 'Normal',
+  PENTING = 'Penting',
+  MENDESAK = 'Mendesak'
+}
+
+export enum UserRole {
+  ADMIN = 'admin',
+  USER = 'user',
+  SUPERADMIN = 'superadmin',
+  ADMIN_POLDA = 'ADMIN_POLDA',
+  USER_POLRES = 'USER_POLRES'
+}
+
+export interface Personnel {
+  id: string;
+  nama: string;
+  pangkat: string;
+  nrp: string;
+  jabatan: string;
+  kesatuan: string;
+  email: string;
+  status: string;
+  role: UserRole;
+  passwordPlain?: string;
+  internal?: string;
+  foto?: string; // Properti baru untuk foto profil
+  // Tambahan untuk Pengaturan
+  telepon?: string;
+  twoFactorEnabled?: boolean;
+  notifEmailNewRequest?: boolean;
+  notifWeeklyReport?: boolean;
+}
+
+export interface ResetRequest {
+  id: string;
+  nama: string;
+  pangkat: string;
+  nrp: string;
+  jabatan: string;
+  kesatuan: string;
+  kontak_person?: string; // Field baru sesuai screenshot
+  waktu_iso: string;
+  status: RequestStatus;
+  alasan: string;
+  catatan?: string;
+  dokumen_kta?: string;
+  prioritas?: RequestPriority;
+  createdAt: number;
+  updatedAt?: number;
+  reset_info?: {
+    by: string;
+    at_iso: string;
+    password_set: boolean;
+  };
+  reset_password?: string;
+}
+
+export interface SiteSettings {
+  name: string;
+  logo: string | null;
+  loginTitle?: string;
+  loginSubtitle?: string;
+  darkMode?: boolean;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  body: string;
+  time: number;
+  read: boolean;
+  type: 'request' | 'system' | 'personnel';
+  refId?: string;
+}
+
+export interface LogEntry {
+  id: string;
+  waktu: number;
+  user: {
+    nama: string;
+    role: string;
+    initials: string;
+  };
+  aktivitas: 'Reset Password' | 'Login' | 'Sistem' | 'Lainnya' | 'Update Data' | 'Hapus Data' | 'Pengaturan';
+  keterangan: string;
+  ipAddress: string;
+}

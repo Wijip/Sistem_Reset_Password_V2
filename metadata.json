@@ -1,0 +1,5 @@
+{
+  "name": "Sentralisasi Reset Password - Polda Jatim",
+  "description": "Sistem informasi sentralisasi reset password email Polri untuk Polda Jatim dan jajaran Polres, mengutamakan keamanan data dengan JWT dan hashing bcrypt.",
+  "requestFramePermissions": []
+}
