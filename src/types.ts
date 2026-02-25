@@ -13,7 +13,7 @@ export enum RequestPriority {
 }
 
 export enum UserRole {
-  SUPERADMIN = 'SUPERADMIN',
+  ADMIN_POLDA = 'ADMIN_POLDA',
   ADMIN_POLRES = 'ADMIN_POLRES',
   USER = 'USER'
 }

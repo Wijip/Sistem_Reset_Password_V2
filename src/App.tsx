@@ -25,16 +25,14 @@ import Sidebar from './components/Sidebar';
 import MobileTopbar from './components/MobileTopbar';
 import Toast from './components/Toast';
 
-import { useTheme } from './context/ThemeContext';
-
 const ProtectedRoute: React.FC<React.PropsWithChildren<{ 
   currentUser: Personnel | null, 
-  superAdminOnly?: boolean,
+  poldaOnly?: boolean,
   anyAdminOnly?: boolean
-}>> = ({ children, currentUser, superAdminOnly = false, anyAdminOnly = false }) => {
+}>> = ({ children, currentUser, poldaOnly = false, anyAdminOnly = false }) => {
   if (!currentUser) return <Navigate to="/login" replace />;
   
-  if (superAdminOnly && currentUser.role !== UserRole.SUPERADMIN) return <Navigate to="/" replace />;
+  if (poldaOnly && currentUser.role !== UserRole.ADMIN_POLDA) return <Navigate to="/" replace />;
   
   if (anyAdminOnly && currentUser.role === UserRole.USER) return <Navigate to="/" replace />;
   
@@ -42,8 +40,6 @@ const ProtectedRoute: React.FC<React.PropsWithChildren<{
 };
 
 const App: React.FC = () => {
-  const { isDarkMode } = useTheme();
-
   const [personnel, setPersonnel] = useState<Personnel[]>(() => {
     const saved = localStorage.getItem('PERSONNEL_DATA');
     return saved ? JSON.parse(saved) : INITIAL_PERSONNEL;
@@ -65,9 +61,18 @@ const App: React.FC = () => {
       name: 'Polda Jatim', 
       logo: '/img/BIDTIK.webp',
       loginTitle: 'Reset Password Email Polri',
-      loginSubtitle: 'Bid Tik Polda Jatim'
+      loginSubtitle: 'Bid Tik Polda Jatim',
+      darkMode: false
     };
   });
+
+  useEffect(() => {
+    if (siteSettings.darkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [siteSettings.darkMode]);
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [currentUser, setCurrentUser] = useState<Personnel | null>(() => {
@@ -138,7 +143,7 @@ const App: React.FC = () => {
       waktu: Date.now(),
       user: {
         nama: currentUser.nama,
-        role: currentUser.role === UserRole.SUPERADMIN ? 'Super Admin' : currentUser.role === UserRole.ADMIN_POLRES ? 'Admin Polres' : 'Personel',
+        role: currentUser.role === UserRole.ADMIN_POLDA ? 'Super Admin' : currentUser.role === UserRole.ADMIN_POLRES ? 'Admin Polres' : 'Personel',
         initials: currentUser.nama.split(' ').map(n => n[0]).join('').toUpperCase()
       },
       aktivitas,
@@ -199,7 +204,7 @@ const App: React.FC = () => {
 
   return (
     <HashRouter>
-      <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-300 ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
+      <div className={`min-h-screen flex flex-col md:flex-row transition-colors duration-300 ${siteSettings.darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
         {currentUser && (
           <>
             <Sidebar 
@@ -217,14 +222,14 @@ const App: React.FC = () => {
             <Route path="/request-reset" element={<PublicResetForm onSubmit={submitPublicRequest} siteSettings={siteSettings} />} />
             
             <Route path="/admin/dashboard" element={
-              <ProtectedRoute currentUser={currentUser} superAdminOnly>
+              <ProtectedRoute currentUser={currentUser} poldaOnly>
                 <SuperAdminDashboard currentUser={currentUser!} onLogout={handleLogout} />
               </ProtectedRoute>
             } />
 
             <Route path="/" element={
               <ProtectedRoute currentUser={currentUser}>
-                {currentUser?.role === UserRole.SUPERADMIN || currentUser?.role === UserRole.ADMIN_POLRES ? (
+                {currentUser?.role === UserRole.ADMIN_POLDA || currentUser?.role === UserRole.ADMIN_POLRES ? (
                   <Dashboard showToast={showToast} currentUser={currentUser!} />
                 ) : (
                   <UserDashboard 
@@ -253,7 +258,7 @@ const App: React.FC = () => {
             } />
             
             <Route path="/personnel" element={
-              <ProtectedRoute superAdminOnly currentUser={currentUser}>
+              <ProtectedRoute poldaOnly currentUser={currentUser}>
                 <PersonnelData 
                   personnel={personnel} 
                   setPersonnel={setPersonnel} 
@@ -264,13 +269,13 @@ const App: React.FC = () => {
             } />
 
             <Route path="/reports" element={
-              <ProtectedRoute superAdminOnly currentUser={currentUser}>
+              <ProtectedRoute poldaOnly currentUser={currentUser}>
                 <Reports requests={requests} showToast={showToast} />
               </ProtectedRoute>
             } />
 
             <Route path="/logs" element={
-              <ProtectedRoute superAdminOnly currentUser={currentUser}>
+              <ProtectedRoute poldaOnly currentUser={currentUser}>
                 <Logs logs={logs} showToast={showToast} />
               </ProtectedRoute>
             } />

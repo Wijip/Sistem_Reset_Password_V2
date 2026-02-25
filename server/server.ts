@@ -35,18 +35,6 @@ const authenticateToken = (req: any, res: any, next: any) => {
   });
 };
 
-// --- Helpers ---
-const createLog = async (userId: number | null, aktivitas: string, keterangan: string, ip: string = '0.0.0.0') => {
-  try {
-    await pool.execute(
-      'INSERT INTO t_logs (user_id, aktivitas, keterangan, ip_address) VALUES (?, ?, ?, ?)',
-      [userId, aktivitas, keterangan, ip]
-    );
-  } catch (error) {
-    console.error("Gagal membuat log:", error);
-  }
-};
-
 // --- API Routes ---
 
 // Auth Login
@@ -82,8 +70,6 @@ app.post("/api/login", async (req, res) => {
         kesatuan: user.polres_nama || 'POLDA JATIM'
       }
     });
-
-    await createLog(user.id, 'LOGIN', `User ${user.nama} berhasil login`, req.ip);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server error" });
@@ -91,21 +77,19 @@ app.post("/api/login", async (req, res) => {
 });
 
 // Submit Reset Request
-app.post("/api/requests", async (req, res) => {
-  const { nrp, nama, pangkat, jabatan, kesatuan, kontak_person, alasan, dokumen_kta, prioritas } = req.body;
+app.post("/api/reset-request", async (req, res) => {
+  const { nrp, alasan, dokumen_kta, prioritas } = req.body;
   try {
-    // Find user by NRP to link if exists
+    // Find user by NRP
     const [userRows]: any = await pool.execute('SELECT id FROM m_users WHERE nrp = ?', [nrp]);
-    const userId = userRows[0]?.id || null;
+    const user = userRows[0];
+    
+    if (!user) return res.status(404).json({ message: "NRP tidak terdaftar" });
 
     await pool.execute(
-      'INSERT INTO t_reset_requests (user_id, nama, nrp, pangkat, jabatan, kesatuan, kontak_person, alasan, dokumen_kta, prioritas, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userId, nama, nrp, pangkat, jabatan, kesatuan, kontak_person, alasan, dokumen_kta, prioritas || "Normal", "PENDING"]
+      'INSERT INTO t_reset_requests (user_id, alasan, dokumen_kta, prioritas, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+      [user.id, alasan, dokumen_kta, prioritas || "Normal", "PENDING"]
     );
-
-    if (userId) {
-      await createLog(userId, 'REQUEST', `Mengajukan permintaan reset password`, req.ip);
-    }
 
     res.status(201).json({ success: true, message: "Permintaan berhasil dikirim" });
   } catch (error) {
@@ -154,25 +138,20 @@ app.get("/api/stats", authenticateToken, async (req: any, res) => {
 // Get Requests
 app.get("/api/requests", authenticateToken, async (req: any, res) => {
   try {
-    const isSuperAdmin = req.user.role === 'SUPERADMIN';
+    const isPolda = req.user.role === 'ADMIN_POLDA';
     const polresId = req.user.polres_id;
 
     let query = `
-      SELECT r.*, 
-             COALESCE(r.nama, u.nama) as nama, 
-             COALESCE(r.nrp, u.nrp) as nrp, 
-             COALESCE(r.kesatuan, p.nama) as kesatuan 
+      SELECT r.*, u.nama, u.nrp, p.nama as kesatuan 
       FROM t_reset_requests r
-      LEFT JOIN m_users u ON r.user_id = u.id
+      JOIN m_users u ON r.user_id = u.id
       LEFT JOIN m_polres p ON u.polres_id = p.id
     `;
     
     let params: any[] = [];
-    if (!isSuperAdmin) {
-      query += ' WHERE u.polres_id = ? OR r.kesatuan LIKE ?';
-      // This is a bit loose, but for demo it works. 
-      // In real app we'd use polres_id for requests too.
-      params = [polresId, `%${req.user.kesatuan}%` || ''];
+    if (!isPolda) {
+      query += ' WHERE u.polres_id = ?';
+      params = [polresId];
     }
     
     query += ' ORDER BY r.created_at DESC';
@@ -180,7 +159,6 @@ app.get("/api/requests", authenticateToken, async (req: any, res) => {
     const [requests] = await pool.execute(query, params);
     res.json(requests);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Gagal mengambil data" });
   }
 });
@@ -192,61 +170,9 @@ app.patch("/api/requests/:id", authenticateToken, async (req: any, res) => {
 
   try {
     await pool.execute('UPDATE t_reset_requests SET status = ? WHERE id = ?', [status, id]);
-    
-    const [reqRows]: any = await pool.execute('SELECT user_id, nama FROM t_reset_requests WHERE id = ?', [id]);
-    const request = reqRows[0];
-    
-    await createLog(req.user.id, status, `Mengubah status permintaan ${request?.nama || id} menjadi ${status}`, req.ip);
-
     res.json({ success: true, message: "Status berhasil diperbarui" });
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: "Gagal memperbarui status" });
-  }
-});
-
-// Get Dashboard Stats
-app.get("/api/dashboard-stats", authenticateToken, async (req: any, res) => {
-  try {
-    const isSuperAdmin = req.user.role === 'SUPERADMIN';
-    const polresId = req.user.polres_id;
-
-    let totalPersonnelQuery = 'SELECT COUNT(*) as count FROM m_users';
-    let activeRequestsQuery = 'SELECT COUNT(*) as count FROM t_reset_requests WHERE status = "PENDING"';
-    let completedRequestsQuery = 'SELECT COUNT(*) as count FROM t_reset_requests WHERE status = "APPROVED"';
-    let params: any[] = [];
-
-    if (!isSuperAdmin) {
-      totalPersonnelQuery += ' WHERE polres_id = ?';
-      activeRequestsQuery = 'SELECT COUNT(*) as count FROM t_reset_requests r JOIN m_users u ON r.user_id = u.id WHERE r.status = "PENDING" AND u.polres_id = ?';
-      completedRequestsQuery = 'SELECT COUNT(*) as count FROM t_reset_requests r JOIN m_users u ON r.user_id = u.id WHERE r.status = "APPROVED" AND u.polres_id = ?';
-      params = [polresId];
-    }
-
-    const [[{ count: totalPersonnel }]]: any = await pool.execute(totalPersonnelQuery, params);
-    const [[{ count: activeRequests }]]: any = await pool.execute(activeRequestsQuery, params);
-    const [[{ count: completedRequests }]]: any = await pool.execute(completedRequestsQuery, params);
-
-    // Mock chart data for now
-    const chartData = [
-      { name: 'Sen', value: 12 },
-      { name: 'Sel', value: 19 },
-      { name: 'Rab', value: 15 },
-      { name: 'Kam', value: 22 },
-      { name: 'Jum', value: 30 },
-      { name: 'Sab', value: 10 },
-      { name: 'Min', value: 5 },
-    ];
-
-    res.json({
-      total_personnel: totalPersonnel,
-      active_requests: activeRequests,
-      completed_requests: completedRequests,
-      chart_data: chartData
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Gagal mengambil statistik dashboard" });
   }
 });
 
