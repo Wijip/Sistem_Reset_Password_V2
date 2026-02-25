@@ -29,7 +29,7 @@ const Login: React.FC<LoginProps> = ({ onLogin, addLog, siteSettings }) => {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nrp: email, password }) // Using email field for NRP as per user request schema
+        body: JSON.stringify({ email, password })
       });
 
       const data = await response.json();

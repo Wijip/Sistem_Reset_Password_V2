@@ -39,21 +39,21 @@ const authenticateToken = (req: any, res: any, next: any) => {
 
 // Auth Login
 app.post("/api/login", async (req, res) => {
-  const { nrp, password } = req.body;
+  const { email, password } = req.body;
   try {
     const [rows]: any = await pool.execute(
-      'SELECT u.*, p.nama as polres_nama FROM m_users u LEFT JOIN m_polres p ON u.polres_id = p.id WHERE u.nrp = ?',
-      [nrp]
+      'SELECT u.*, p.nama as polres_nama FROM m_users u LEFT JOIN m_polres p ON u.polres_id = p.id WHERE u.email = ?',
+      [email]
     );
 
     const user = rows[0];
-    if (!user) return res.status(404).json({ message: "NRP tidak ditemukan" });
+    if (!user) return res.status(404).json({ message: "User tidak ditemukan" });
 
     const validPassword = await bcrypt.compare(password, user.password_hash);
     if (!validPassword) return res.status(401).json({ message: "Password salah" });
 
     const token = jwt.sign(
-      { id: user.id, nrp: user.nrp, role: user.role, polres_id: user.polres_id },
+      { id: user.id, nrp: user.nrp, email: user.email, role: user.role, polres_id: user.polres_id },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -64,6 +64,7 @@ app.post("/api/login", async (req, res) => {
         id: user.id,
         nrp: user.nrp,
         nama: user.nama,
+        email: user.email,
         role: user.role,
         kesatuan: user.polres_nama || 'POLDA JATIM'
       }
