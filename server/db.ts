@@ -1,64 +1,58 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
+import sqlite3 from 'sqlite3';
+import { open } from 'sqlite';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-/**
- * Mem-parsing DATABASE_URL (URI) menjadi objek konfigurasi mysql2
- * Format: mysql://user:password@host:port/database
- */
-const parseDatabaseUrl = (url: string) => {
-  try {
-    const pattern = /^mysql:\/\/([^:]+):?([^@]*?)@([^:]+):?(\d*)\/(.+)$/;
-    const match = url.match(pattern);
-    
-    if (match) {
-      return {
-        user: match[1],
-        password: match[2],
-        host: match[3],
-        port: parseInt(match[4]) || 3306,
-        database: match[5]
-      };
+// Mocking mysql2 pool interface using SQLite
+class SQLitePool {
+  private db: any = null;
+
+  async init() {
+    if (this.db) return;
+    this.db = await open({
+      filename: path.join(__dirname, 'database.sqlite'),
+      driver: sqlite3.Database
+    });
+    console.log("📂 Database: Menggunakan SQLite (File-based) untuk demo");
+  }
+
+  async execute(sql: string, params: any[] = []) {
+    await this.init();
+    // Convert MySQL specific syntax to SQLite if needed
+    let sqliteSql = sql
+      .replace(/INT AUTO_INCREMENT PRIMARY KEY/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT')
+      .replace(/AUTO_INCREMENT/gi, 'AUTOINCREMENT')
+      .replace(/ENUM\([^)]+\)/gi, 'TEXT')
+      .replace(/LONGTEXT/gi, 'TEXT');
+
+
+    // Handle INSERT IGNORE (SQLite uses INSERT OR IGNORE)
+    if (sqliteSql.toUpperCase().includes('INSERT IGNORE')) {
+      sqliteSql = sqliteSql.replace(/INSERT IGNORE/gi, 'INSERT OR IGNORE');
     }
-  } catch (e) {
-    console.error("Gagal mem-parsing DATABASE_URL:", e);
-  }
-  return null;
-};
 
-let config: any = {
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-if (process.env.DATABASE_URL) {
-  const parsed = parseDatabaseUrl(process.env.DATABASE_URL);
-  if (parsed) {
-    console.log("📡 Database: Menggunakan koneksi dari DATABASE_URL (ENV)");
-    config = { ...config, ...parsed };
-  } else {
-    console.log("⚠️ Database: DATABASE_URL ditemukan tapi format tidak valid, mencoba fallback...");
-    config = {
-      ...config,
-      host: 'localhost',
-      user: 'root',
-      password: '',
-      database: 'polda_reset_db'
-    };
+    try {
+      if (sqliteSql.trim().toUpperCase().startsWith('SELECT')) {
+        const rows = await this.db.all(sqliteSql, params);
+        return [rows];
+      } else {
+        const result = await this.db.run(sqliteSql, params);
+        return [{ insertId: result.lastID, affectedRows: result.changes }];
+      }
+    } catch (error) {
+      console.error("❌ SQLite Error:", error);
+      throw error;
+    }
   }
-} else {
-  console.log("🏠 Database: DATABASE_URL tidak ditemukan, menggunakan konfigurasi fallback XAMPP");
-  config = {
-    ...config,
-    host: 'localhost',
-    user: 'root',
-    password: '',
-    database: 'polda_reset_db'
-  };
+
+  async query(sql: string, params: any[] = []) {
+    return this.execute(sql, params);
+  }
 }
 
-const pool = mysql.createPool(config);
+const pool = new SQLitePool();
 
 export default pool;
